@@ -1,0 +1,14 @@
+{
+  "name": "cout-chat",
+  "version": "1.0.0",
+  "description": "cout - Minimalist real-time chat with code block syntax highlighting",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "install-all": "cd server && npm install"
+  },
+  "keywords": ["chat", "websocket", "socket.io", "minimalist", "developer", "cout"],
+  "author": "",
+  "license": "MIT"
+}
