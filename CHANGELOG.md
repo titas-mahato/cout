@@ -1,27 +1,16 @@
-# Changelog
+# dev log / changelog
 
-All notable changes to the **cout** project will be documented in this file.
+things done so far:
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
-## [0.2.0] - 2026-09-14 (Day 2)
-
-### Added
-- Minimalist dark-mode HTML chat interface layout (`client/index.html`).
-- Responsive viewport configuration and dark theme color metadata.
-- Custom inline SVG terminal tab favicon (`>_`).
-- Join room modal with handle selection and `#` room prefix input.
-- Chat workspace with navigation header, connection status pill, and member flyout drawer.
-- Auto-expanding message form with keyboard shortcut guidelines.
-
----
-
-## [0.1.0] - 2026-09-13 (Day 1)
-
-### Added
-- Project initialization with root `.gitignore` and `package.json`.
-- Node.js Express server backend with Socket.io real-time engine.
-- Room lifecycle management (`join_room`, `leave_room`, `disconnect`).
-- Real-time message broadcasting and user typing indicator event listeners.
-- Permissive CORS configuration for external GitHub Pages client hosting.
-- Server health check verification endpoint (`GET /health`).
+- init repo with gitignore and root package.json
+- setup node express server with socket.io
+- added basic socket events: join_room, send_message, typing, disconnect
+- added in-memory room tracking so users can join different channels
+- made a simple /health route to ping server status
+- added cors config so github pages can talk to backend later
+- built clean html layout for chat in client/index.html
+- added join modal for username and room selection
+- added header with live room name and socket connection pill
+- added members flyout drawer and message scroll container
+- added textarea message input with shift+enter support
+- added little >_ terminal favicon
