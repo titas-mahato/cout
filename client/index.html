@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cout | Real-Time Chat</title>
+  
+  <!-- Highlight.js for standard code syntax coloring (Atom One Dark theme) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Socket.io Client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <!-- Client Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="app-container">
+
+    <!-- JOIN ROOM OVERLAY / MODAL -->
+    <div id="join-screen" class="join-screen">
+      <div class="join-card">
+        <div class="brand-header">
+          <div class="logo-mark">
+            <span class="prompt-sym">&gt;</span>
+          </div>
+          <h1>cout</h1>
+          <p class="tagline">Minimalist real-time chat with clean code formatting</p>
+        </div>
+
+        <form id="join-form" class="join-form">
+          <div class="input-group">
+            <label for="username-input">Handle / Username</label>
+            <input 
+              type="text" 
+              id="username-input" 
+              placeholder="e.g. dev_alex" 
+              maxlength="24" 
+              autocomplete="off"
+              required 
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="room-input">Room Channel</label>
+            <div class="room-prefix-wrap">
+              <span class="room-hash">#</span>
+              <input 
+                type="text" 
+                id="room-input" 
+                placeholder="general" 
+                value="general" 
+                maxlength="24" 
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="join-btn">
+            Enter Room
+          </button>
+        </form>
+
+        <div class="join-footer">
+          <button id="server-settings-toggle" class="btn-text-link">Server Settings</button>
+          <div id="server-settings-box" class="server-settings-box hidden">
+            <label for="custom-server-input">Backend Server URL:</label>
+            <input 
+              type="url" 
+              id="custom-server-input" 
+              placeholder="https://your-server.onrender.com" 
+            />
+            <button id="save-server-btn" class="btn-secondary btn-small">Save URL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CHAT INTERFACE -->
+    <div id="chat-screen" class="chat-screen hidden">
+      
+      <!-- Top Navigation Bar -->
+      <header class="chat-header">
+        <div class="header-left">
+          <div class="header-brand">
+            <span class="prompt-sym">&gt;</span>
+            <span class="brand-title">cout</span>
+          </div>
+          <span class="header-divider">/</span>
+          <div class="header-room">
+            <span class="room-hash">#</span>
+            <span id="header-room-name">general</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status Pill -->
+          <div id="connection-status" class="status-pill status-connecting" title="Socket status">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting</span>
+          </div>
+
+          <!-- Active Users Count & Toggle -->
+          <button id="users-toggle-btn" class="btn-ghost" title="View active room members">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span id="active-user-count">1</span>
+          </button>
+
+          <!-- Leave Room Button -->
+          <button id="leave-room-btn" class="btn-ghost" title="Leave room">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Active Users Drawer/Flyout -->
+      <aside id="users-sidebar" class="users-sidebar hidden">
+        <div class="sidebar-header">
+          <h3>Members in Room</h3>
+          <button id="close-users-sidebar" class="btn-icon">&times;</button>
+        </div>
+        <ul id="users-list" class="users-list">
+          <!-- Populated dynamically via JS -->
+        </ul>
+      </aside>
+
+      <!-- Chat Messages Scroll Area -->
+      <main id="chat-messages" class="chat-messages">
+        <div class="welcome-banner">
+          <p class="welcome-title">Connected to #<span id="welcome-room-name">general</span></p>
+          <p class="welcome-desc">Messages are ephemeral. Tip: write code snippets using <code>```python</code>, <code>```javascript</code>, etc.</p>
+        </div>
+        <!-- Messages rendered here -->
+      </main>
+
+      <!-- Typing Indicator Row -->
+      <div id="typing-indicator" class="typing-indicator hidden">
+        <span class="typing-text">Someone is typing...</span>
+      </div>
+
+      <!-- Message Input Footer -->
+      <footer class="chat-footer">
+        <form id="message-form" class="message-form">
+          <div class="input-wrapper">
+            <textarea 
+              id="message-input" 
+              rows="1" 
+              placeholder="Message #general... (Shift+Enter for newline)"
+              autocomplete="off"
+            ></textarea>
+          </div>
+          <button type="submit" id="send-btn" class="btn-send" title="Send message (Enter)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
