@@ -14,3 +14,9 @@ things done so far:
 - added members flyout drawer and message scroll container
 - added textarea message input with shift+enter support
 - added little >_ terminal favicon
+
+- styled the entire client with dark theme (dark slate, clean borders)
+- made join modal look like a sleek card with handle and room inputs
+- added status indicator pill for connection health (pulse animation)
+- built the secondary code container with custom header, lang label, and copy button
+- added auto-resizing message input bar and responsive mobile media queries
