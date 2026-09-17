@@ -20,3 +20,11 @@ things done so far:
 - added status indicator pill for connection health (pulse animation)
 - built the secondary code container with custom header, lang label, and copy button
 - added auto-resizing message input bar and responsive mobile media queries
+
+- hooked up socket.io on the frontend with auto reconnect
+- made config.js to switch between localhost and live backend url
+- added real-time message stream with user color badges and timestamps
+- built markdown regex parser to extract code blocks and inline code
+- integrated highlight.js for standard code syntax coloring
+- added quick copy button to snippet cards with feedback
+- added live typing indicator with debounce
