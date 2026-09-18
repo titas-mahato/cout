@@ -28,3 +28,7 @@ things done so far:
 - integrated highlight.js for standard code syntax coloring
 - added quick copy button to snippet cards with feedback
 - added live typing indicator with debounce
+
+- wrote detailed readme covering local dev and code snippet syntax
+- documented 100% free deployment guide for render and github pages
+- mapped out full project directory structure
