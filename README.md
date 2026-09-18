@@ -8,16 +8,15 @@
 
 ## 🚀 Quick Start (Run Locally)
 
-### 1. Install Dependencies
-Open PowerShell or your terminal in the project directory:
-
+### 1. Clone & Navigate
 ```bash
-cd d:\Zenith\Projects\cout\server
-npm install
+git clone https://github.com/titas-mahato/cout.git
+cd cout/server
 ```
 
-### 2. Start the Server
+### 2. Install Dependencies & Start
 ```bash
+npm install
 npm start
 ```
 
@@ -56,7 +55,7 @@ cout automatically renders the snippet in a secondary dark-contrast card with:
 ### Step 1: Push Project to GitHub
 
 1. Create a new public repository on [GitHub](https://github.com/new) named `cout` (do **not** initialize with README or .gitignore since we already have them).
-2. Run these commands in `d:\Zenith\Projects\cout`:
+2. Run these commands inside your project root:
 
 ```bash
 git init
