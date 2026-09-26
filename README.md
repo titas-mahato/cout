@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Quick Start (Run Locally)
+## Quick Start (Run Locally)
 
 ### 1. Clone & Navigate
 ```bash
@@ -50,7 +50,7 @@ cout automatically renders the snippet in a secondary dark-contrast card with:
 
 ---
 
-## 🌐 How to Host Live for $0 (Zero-Cost Deployment)
+## How to Host Live for $0 (Zero-Cost Deployment)
 
 ### Step 1: Push Project to GitHub
 
