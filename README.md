@@ -26,7 +26,7 @@ Open multiple tabs to test sending messages, sharing code snippets, and watching
 
 ---
 
-## ⌨️ Code Snippet Formatting
+## Code Snippet Formatting
 
 In any chat message, use standard markdown triple backticks to format code:
 
