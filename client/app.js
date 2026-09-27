@@ -265,6 +265,32 @@
     return container;
   }
 
+  // Play subtle audio chime for incoming messages from others
+  function playMessageChime() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5 note
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5 note
+
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.18);
+    } catch (e) {
+      // Audio autoplay blocked or not supported
+    }
+  }
+
   // Format regular text (handle newlines and inline `code`)
   function formatTextMessage(text) {
     let escaped = escapeHtml(text);
@@ -279,6 +305,12 @@
   // Render a new chat message
   function renderMessage(msg) {
     const isMe = msg.sender === state.username;
+    
+    // Play subtle audio cue for incoming messages from others
+    if (!isMe) {
+      playMessageChime();
+    }
+
     const messageEntry = document.createElement('div');
     messageEntry.className = 'message-entry';
 
