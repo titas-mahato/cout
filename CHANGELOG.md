@@ -32,3 +32,7 @@ things done so far:
 - wrote detailed readme covering local dev and code snippet syntax
 - documented 100% free deployment guide for render and github pages
 - mapped out full project directory structure
+
+- synthesized a clean web audio chime for incoming messages from peers
+- added header sound toggle button to quickly mute/unmute notifications
+- saved sound preference in localstorage so setting stays across reloads
