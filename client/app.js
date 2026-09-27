@@ -6,7 +6,8 @@
     socket: null,
     activeUsers: [],
     typingTimer: null,
-    isTyping: false
+    isTyping: false,
+    soundEnabled: localStorage.getItem('cout_sound_enabled') !== 'false'
   };
 
   // DOM Elements
@@ -31,6 +32,10 @@
   const usersSidebar = document.getElementById('users-sidebar');
   const closeUsersSidebar = document.getElementById('close-users-sidebar');
   const usersList = document.getElementById('users-list');
+
+  const soundToggleBtn = document.getElementById('sound-toggle-btn');
+  const soundIconOn = document.getElementById('sound-icon-on');
+  const soundIconOff = document.getElementById('sound-icon-off');
 
   const chatMessages = document.getElementById('chat-messages');
   const typingIndicator = document.getElementById('typing-indicator');
@@ -267,6 +272,7 @@
 
   // Play subtle audio chime for incoming messages from others
   function playMessageChime() {
+    if (!state.soundEnabled) return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
@@ -473,6 +479,30 @@
         chatMessages.innerHTML = '';
       }
     });
+
+    // Sound Toggle Controls
+    function updateSoundUI() {
+      if (soundToggleBtn && soundIconOn && soundIconOff) {
+        if (state.soundEnabled) {
+          soundIconOn.classList.remove('hidden');
+          soundIconOff.classList.add('hidden');
+          soundToggleBtn.title = 'Sound notifications: On (click to mute)';
+        } else {
+          soundIconOn.classList.add('hidden');
+          soundIconOff.classList.remove('hidden');
+          soundToggleBtn.title = 'Sound notifications: Muted (click to unmute)';
+        }
+      }
+    }
+
+    if (soundToggleBtn) {
+      updateSoundUI();
+      soundToggleBtn.addEventListener('click', () => {
+        state.soundEnabled = !state.soundEnabled;
+        localStorage.setItem('cout_sound_enabled', state.soundEnabled);
+        updateSoundUI();
+      });
+    }
 
     // Server Settings Toggle
     serverSettingsToggle.addEventListener('click', () => {
