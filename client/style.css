@@ -392,6 +392,29 @@ html, body {
   border-color: var(--border-light);
 }
 
+.btn-icon-tiny {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-tiny:hover {
+  color: var(--accent);
+  background-color: var(--bg-hover);
+  border-color: var(--border-light);
+}
+
+.btn-icon-tiny.copied {
+  color: var(--success);
+}
+
 /* Users Sidebar / Drawer */
 .users-sidebar {
   position: absolute;

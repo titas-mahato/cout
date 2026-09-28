@@ -504,6 +504,25 @@
       });
     }
 
+    // Copy Room Invite Link
+    const copyRoomLinkBtn = document.getElementById('copy-room-link-btn');
+    if (copyRoomLinkBtn) {
+      copyRoomLinkBtn.addEventListener('click', async () => {
+        const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(state.room)}`;
+        try {
+          await navigator.clipboard.writeText(inviteUrl);
+          copyRoomLinkBtn.classList.add('copied');
+          copyRoomLinkBtn.title = 'Invite link copied!';
+          setTimeout(() => {
+            copyRoomLinkBtn.classList.remove('copied');
+            copyRoomLinkBtn.title = 'Copy invite link to this room';
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy room link:', err);
+        }
+      });
+    }
+
     // Server Settings Toggle
     serverSettingsToggle.addEventListener('click', () => {
       serverSettingsBox.classList.toggle('hidden');
@@ -528,6 +547,13 @@
 
   // Bootstrap
   function start() {
+    // Auto-fill room if URL has ?room=... parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam && roomInput) {
+      roomInput.value = roomParam.toLowerCase().slice(0, 24);
+    }
+
     setupEventListeners();
     const serverUrl = window.COUT_CONFIG.getServerUrl();
     initSocket(serverUrl);
