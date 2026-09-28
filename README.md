@@ -70,7 +70,7 @@ git push -u origin main
 
 ---
 
-### Step 2: Deploy Backend to Render (Free Forever)
+### Step 2: Deploy Backend to Render
 
 [Render.com](https://render.com) allows hosting Node.js WebSocket web services 100% free with automatic deploys from GitHub.
 
@@ -126,7 +126,7 @@ GitHub Pages hosts static websites directly from your repo for free.
 
 ---
 
-## 🛠 Project Structure
+## Project Structure
 
 ```
 cout/
