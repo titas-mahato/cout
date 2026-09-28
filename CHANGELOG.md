@@ -36,3 +36,9 @@ things done so far:
 - synthesized a clean web audio chime for incoming messages from peers
 - added header sound toggle button to quickly mute/unmute notifications
 - saved sound preference in localstorage so setting stays across reloads
+
+- added one-click room invite link button in topbar with clipboard feedback
+- added ?room= url parameter support so invite links automatically pre-fill room
+- enhanced server /health endpoint to track heap and rss memory metrics
+- added lightweight /ping endpoint for automated cron keep-alive pings
+- completed 7-day development sprint for cout v1.0
