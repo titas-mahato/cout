@@ -35,13 +35,23 @@ app.get('/health', (req, res) => {
     totalUsers += users.size;
   });
 
+  const mem = process.memoryUsage();
   res.status(200).json({
     status: 'ok',
     uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
+    memory: {
+      rssMb: Number((mem.rss / 1024 / 1024).toFixed(2)),
+      heapUsedMb: Number((mem.heapUsed / 1024 / 1024).toFixed(2))
+    },
     activeRooms: rooms.size,
     activeUsers: totalUsers
   });
+});
+
+// Lightweight keep-alive ping route (for UptimeRobot / cron pings)
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
 });
 
 // Room state storage: roomName -> Map(socketId -> { username, joinedAt })
