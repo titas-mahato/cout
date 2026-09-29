@@ -1,6 +1,5 @@
 // cout Chat Client Configuration
-// When you deploy your backend to Render.com, paste your live backend URL below:
-const PRODUCTION_BACKEND_URL = "https://cout-backend.onrender.com"; 
+const PRODUCTION_BACKEND_URL = "https://cout-server.onrender.com"; 
 
 window.COUT_CONFIG = {
   // If running locally, connect to the local server port.
