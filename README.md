@@ -2,6 +2,11 @@
 
 > Minimalist real-time chat with clean code formatting, syntax highlighting, and zero-cost cloud hosting.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-cout--chat.vercel.app-58a6ff?style=flat-square&logo=vercel)](https://cout-chat.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3fb950?style=flat-square)](LICENSE)
+
+👉 **Live Application:** **[https://cout-chat.vercel.app](https://cout-chat.vercel.app)**
+
 **cout** is designed for developers and students who want an uncluttered, responsive chat interface where code snippets are cleanly separated from regular text in dedicated secondary cards with full syntax highlighting and one-click copy buttons.
 
 ---
