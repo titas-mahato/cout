@@ -128,6 +128,11 @@
 
     // Listen for room join confirmation
     state.socket.on('joined_success', (data) => {
+      const joinBtn = document.getElementById('join-btn');
+      if (joinBtn) {
+        joinBtn.textContent = 'Enter Room';
+        joinBtn.disabled = false;
+      }
       state.room = data.room;
       state.username = data.username;
       headerRoomName.textContent = data.room;
@@ -399,6 +404,7 @@
       e.preventDefault();
       const username = usernameInput.value.trim();
       const room = (roomInput.value.trim() || 'general').toLowerCase();
+      const joinBtn = document.getElementById('join-btn');
 
       if (!username) return;
 
@@ -406,8 +412,26 @@
       state.room = room;
 
       if (!state.socket || !state.socket.connected) {
+        if (joinBtn) {
+          joinBtn.textContent = 'Waking up server... (takes ~30s)';
+          joinBtn.disabled = true;
+        }
+
         const serverUrl = window.COUT_CONFIG.getServerUrl();
         initSocket(serverUrl);
+
+        state.socket.once('connect', () => {
+          state.socket.emit('join_room', { username, room });
+        });
+
+        state.socket.once('connect_error', () => {
+          if (joinBtn) {
+            joinBtn.textContent = 'Enter Room';
+            joinBtn.disabled = false;
+          }
+          alert('Backend server is waking up. Please wait 10-20 seconds and click Enter Room again!');
+        });
+        return;
       }
 
       state.socket.emit('join_room', { username, room });
