@@ -113,36 +113,60 @@ io.on('connection', (socket) => {
   });
 
   // Handle chat messages
-  socket.on('send_message', ({ room, text }) => {
-    const currentRoom = socketRoomMap.get(socket.id) || room;
-    if (!currentRoom || !rooms.has(currentRoom)) return;
-
-    const userObj = rooms.get(currentRoom)?.get(socket.id);
-    const username = userObj ? userObj.username : 'Anonymous';
+  socket.on('send_message', ({ room, text, username }) => {
+    const rawRoom = socketRoomMap.get(socket.id) || room || 'general';
+    const cleanRoom = String(rawRoom).trim().toLowerCase().slice(0, 30);
+    if (!cleanRoom) return;
 
     if (!text || typeof text !== 'string' || !text.trim()) return;
 
+    // Ensure room exists in state
+    if (!rooms.has(cleanRoom)) {
+      rooms.set(cleanRoom, new Map());
+    }
+
+    const roomUsers = rooms.get(cleanRoom);
+    let senderName = roomUsers.get(socket.id)?.username;
+
+    // Auto-heal membership if socket reconnected without full join cycle
+    if (!senderName) {
+      senderName = (username || '').trim().slice(0, 30) || 'Anonymous';
+      roomUsers.set(socket.id, {
+        username: senderName,
+        joinedAt: Date.now()
+      });
+      socketRoomMap.set(socket.id, cleanRoom);
+      socket.join(cleanRoom);
+
+      // Broadcast updated member list so room is synchronized
+      io.to(cleanRoom).emit('room_users', {
+        room: cleanRoom,
+        users: getRoomUsers(cleanRoom)
+      });
+    }
+
     const messageData = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-      sender: username,
+      sender: senderName,
       text: text.slice(0, 8000), // Protect against overly long payloads
-      room: currentRoom,
+      room: cleanRoom,
       timestamp: new Date().toISOString()
     };
 
-    io.to(currentRoom).emit('new_message', messageData);
+    io.to(cleanRoom).emit('new_message', messageData);
   });
 
   // Handle typing indicator
   socket.on('typing', ({ room, isTyping }) => {
-    const currentRoom = socketRoomMap.get(socket.id) || room;
-    if (!currentRoom || !rooms.has(currentRoom)) return;
+    const rawRoom = socketRoomMap.get(socket.id) || room || 'general';
+    const cleanRoom = String(rawRoom).trim().toLowerCase().slice(0, 30);
+    if (!cleanRoom || !rooms.has(cleanRoom)) return;
 
-    const userObj = rooms.get(currentRoom)?.get(socket.id);
-    if (!userObj) return;
+    const userObj = rooms.get(cleanRoom)?.get(socket.id);
+    const username = userObj?.username || 'Someone';
 
-    socket.to(currentRoom).emit('user_typing', {
-      username: userObj.username,
+    socket.to(cleanRoom).emit('user_typing', {
+      username: username,
       isTyping: Boolean(isTyping)
     });
   });

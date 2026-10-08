@@ -42,3 +42,5 @@ things done so far:
 - enhanced server /health endpoint to track heap and rss memory metrics
 - added lightweight /ping endpoint for automated cron keep-alive pings
 - completed 7-day development sprint for cout v1.0
+- fixed mobile form reload bug on sending messages and added persistent sessionStorage recovery
+- hardened socket reconnection with infinite attempts and server-side room membership healing

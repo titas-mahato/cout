@@ -43,6 +43,7 @@
 
   const messageForm = document.getElementById('message-form');
   const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
   const leaveRoomBtn = document.getElementById('leave-room-btn');
 
   // Palette of subtle, readable colors for handles
@@ -101,8 +102,10 @@
 
     state.socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
     });
 
     state.socket.on('connect', () => {
@@ -135,6 +138,17 @@
       }
       state.room = data.room;
       state.username = data.username;
+      
+      // Save active session so accidental page reload doesn't kick user out
+      try {
+        sessionStorage.setItem('cout_session', JSON.stringify({
+          username: data.username,
+          room: data.room
+        }));
+      } catch (e) {
+        console.warn('Could not save session to sessionStorage', e);
+      }
+
       headerRoomName.textContent = data.room;
       welcomeRoomName.textContent = data.room;
       joinScreen.classList.add('hidden');
@@ -437,14 +451,21 @@
       state.socket.emit('join_room', { username, room });
     });
 
-    // Send Message
-    messageForm.addEventListener('submit', (e) => {
-      e.preventDefault();
+    // Send Message function
+    function sendMessage() {
       const text = messageInput.value.trim();
-      if (!text || !state.socket) return;
+      if (!text) return;
+
+      if (!state.socket || !state.socket.connected) {
+        console.warn('Socket not connected while sending message.');
+        if (state.socket) state.socket.connect();
+        alert('Reconnecting to server... Please try again in 2 seconds.');
+        return;
+      }
 
       state.socket.emit('send_message', {
         room: state.room,
+        username: state.username,
         text: text
       });
 
@@ -454,13 +475,26 @@
       // Clear typing state
       state.socket.emit('typing', { room: state.room, isTyping: false });
       state.isTyping = false;
+    }
+
+    if (sendBtn) {
+      sendBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendMessage();
+      });
+    }
+
+    // Send Message via form submit (e.g. mobile virtual keyboard Go/Submit)
+    messageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendMessage();
     });
 
     // Handle Enter vs Shift+Enter
     messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        messageForm.dispatchEvent(new Event('submit'));
+        sendMessage();
       }
     });
 
@@ -494,9 +528,13 @@
     // Leave Room
     leaveRoomBtn.addEventListener('click', () => {
       if (confirm('Leave current room and return to lobby?')) {
+        try {
+          sessionStorage.removeItem('cout_session');
+        } catch (e) {}
         if (state.socket) {
           state.socket.emit('leave_room');
         }
+        state.username = '';
         chatScreen.classList.add('hidden');
         joinScreen.classList.remove('hidden');
         usersSidebar.classList.add('hidden');
@@ -576,6 +614,28 @@
     const roomParam = urlParams.get('room');
     if (roomParam && roomInput) {
       roomInput.value = roomParam.toLowerCase().slice(0, 24);
+    }
+
+    // Restore active session if user reloaded page on mobile
+    let savedSession = null;
+    try {
+      const raw = sessionStorage.getItem('cout_session');
+      if (raw) savedSession = JSON.parse(raw);
+    } catch (e) {
+      console.warn('Session parse error', e);
+    }
+
+    if (savedSession && savedSession.username && savedSession.room) {
+      state.username = savedSession.username;
+      state.room = savedSession.room;
+      if (usernameInput) usernameInput.value = state.username;
+      if (roomInput) roomInput.value = state.room;
+
+      // Show chat interface immediately without flickering join screen
+      headerRoomName.textContent = state.room;
+      welcomeRoomName.textContent = state.room;
+      joinScreen.classList.add('hidden');
+      chatScreen.classList.remove('hidden');
     }
 
     setupEventListeners();
