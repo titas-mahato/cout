@@ -44,6 +44,9 @@
   const messageForm = document.getElementById('message-form');
   const messageInput = document.getElementById('message-input');
   const sendBtn = document.getElementById('send-btn');
+  const codeSnippetBtn = document.getElementById('code-snippet-btn');
+  const codeLangPicker = document.getElementById('code-lang-picker');
+  const closeLangPicker = document.getElementById('close-lang-picker');
   const leaveRoomBtn = document.getElementById('leave-room-btn');
 
   // Palette of subtle, readable colors for handles
@@ -497,6 +500,127 @@
         sendMessage();
       }
     });
+
+    // Insert code block snippet (replaces existing language tag if already in a snippet without stacking)
+    function insertCodeBlock(lang) {
+      const input = messageInput;
+      const val = input.value;
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const hasSelection = (start !== end);
+      const trimmedVal = val.trim();
+      const codeBlockRegex = /^```([a-zA-Z0-9_+#.-]*)\r?\n([\s\S]*?)(?:\r?\n)?```$/;
+
+      if (hasSelection) {
+        const selectedText = val.substring(start, end);
+        const selTrimmed = selectedText.trim();
+        const selMatch = selTrimmed.match(codeBlockRegex);
+
+        if (selMatch) {
+          // Selected text is already a code fence - swap language without stacking
+          const innerCode = selMatch[2];
+          const prefix = `\`\`\`${lang}\n`;
+          const suffix = `\n\`\`\``;
+          const replacement = prefix + innerCode + suffix;
+          input.value = val.substring(0, start) + replacement + val.substring(end);
+          const cursorPos = start + prefix.length + innerCode.length;
+          input.focus();
+          input.setSelectionRange(cursorPos, cursorPos);
+        } else {
+          // Sandwiches selected text and puts cursor right at the end of selection
+          const prefix = `\`\`\`${lang}\n`;
+          const suffix = `\n\`\`\``;
+          const replacement = prefix + selectedText + suffix;
+
+          input.value = val.substring(0, start) + replacement + val.substring(end);
+          const cursorPos = start + prefix.length + selectedText.length;
+          input.focus();
+          input.setSelectionRange(cursorPos, cursorPos);
+        }
+      } else if (trimmedVal.length > 0) {
+        const fullMatch = trimmedVal.match(codeBlockRegex);
+        if (fullMatch) {
+          // Entire input is already a code block - swap language tag without stacking
+          const innerCode = fullMatch[2];
+          const prefix = `\`\`\`${lang}\n`;
+          const suffix = `\n\`\`\``;
+          input.value = prefix + innerCode + suffix;
+
+          // If there was code, place cursor at end of code; if empty, place cursor on middle line
+          const cursorPos = innerCode.length > 0 ? (prefix.length + innerCode.length) : prefix.length;
+          input.focus();
+          input.setSelectionRange(cursorPos, cursorPos);
+        } else {
+          // Sandwiches existing message and puts cursor at the end of og message
+          const prefix = `\`\`\`${lang}\n`;
+          const suffix = `\n\`\`\``;
+          input.value = prefix + val + suffix;
+
+          const cursorPos = prefix.length + val.length;
+          input.focus();
+          input.setSelectionRange(cursorPos, cursorPos);
+        }
+      } else {
+        // Empty textbox: inserts code fences and puts cursor on the blank line in between
+        const prefix = `\`\`\`${lang}\n`;
+        const suffix = `\n\`\`\``;
+        input.value = prefix + suffix;
+
+        const cursorPos = prefix.length;
+        input.focus();
+        input.setSelectionRange(cursorPos, cursorPos);
+      }
+
+      autoResizeTextarea();
+    }
+
+    // Toggle 4x3 Code Language Picker
+    if (codeSnippetBtn && codeLangPicker) {
+      codeSnippetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        codeLangPicker.classList.toggle('hidden');
+        codeSnippetBtn.classList.toggle('active', !codeLangPicker.classList.contains('hidden'));
+      });
+
+      if (closeLangPicker) {
+        closeLangPicker.addEventListener('click', () => {
+          codeLangPicker.classList.add('hidden');
+          codeSnippetBtn.classList.remove('active');
+          messageInput.focus();
+        });
+      }
+
+      // Close popover when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!codeLangPicker.classList.contains('hidden')) {
+          if (!codeLangPicker.contains(e.target) && e.target !== codeSnippetBtn && !codeSnippetBtn.contains(e.target)) {
+            codeLangPicker.classList.add('hidden');
+            codeSnippetBtn.classList.remove('active');
+          }
+        }
+      });
+
+      // Close popover on Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !codeLangPicker.classList.contains('hidden')) {
+          codeLangPicker.classList.add('hidden');
+          codeSnippetBtn.classList.remove('active');
+          messageInput.focus();
+        }
+      });
+
+      // Handle language button clicks
+      const langButtons = codeLangPicker.querySelectorAll('.lang-item-btn');
+      langButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const lang = btn.getAttribute('data-lang') || 'code';
+          insertCodeBlock(lang);
+          codeLangPicker.classList.add('hidden');
+          codeSnippetBtn.classList.remove('active');
+        });
+      });
+    }
 
     // Typing Indicator with Debounce
     messageInput.addEventListener('input', () => {

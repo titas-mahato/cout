@@ -44,3 +44,7 @@ things done so far:
 - completed 7-day development sprint for cout v1.0
 - fixed mobile form reload bug on sending messages and added persistent sessionStorage recovery
 - hardened socket reconnection with infinite attempts and server-side room membership healing
+- added 4x3 code snippet selector popup with textless white squircle blob logos for 12 languages and intelligent cursor positioning
+- repositioned code snippet trigger button to the left of the chat box
+- added in-place code snippet language switching to prevent block stacking and preserve original message
+
