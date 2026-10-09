@@ -175,6 +175,27 @@
       renderMessage(msg);
     });
 
+    // Listen for deleted messages (real-time DOM removal)
+    state.socket.on('message_deleted', ({ messageId }) => {
+      const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+      if (el) {
+        if (state.replyingTo && state.replyingTo.id === messageId) {
+          cancelReply();
+        }
+        const nextEl = el.nextElementSibling;
+        el.remove();
+        // Heal consecutive grouping if head message of a group was deleted
+        if (nextEl && nextEl.classList.contains('consecutive')) {
+          const prevEl = nextEl.previousElementSibling;
+          const prevSender = prevEl?.getAttribute('data-sender');
+          const nextSender = nextEl.getAttribute('data-sender');
+          if (!prevEl || prevSender !== nextSender || prevEl.classList.contains('system-entry')) {
+            nextEl.classList.remove('consecutive');
+          }
+        }
+      }
+    });
+
     // Listen for system messages
     state.socket.on('system_message', (data) => {
       renderSystemMessage(data);
@@ -394,6 +415,7 @@
     if (msg.id) {
       messageEntry.setAttribute('data-msg-id', msg.id);
     }
+    messageEntry.setAttribute('data-sender', msg.sender);
 
     // Consecutive Messages Grouping (Discord-style)
     const msgTime = msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now();
@@ -447,24 +469,22 @@
       messageEntry.appendChild(replyContext);
     }
 
-    // 2. Meta row (Sender + Timestamp) - rendered unless grouped consecutively
-    if (!isConsecutive) {
-      const meta = document.createElement('div');
-      meta.className = 'message-meta';
+    // 2. Meta row (Sender + Timestamp)
+    const meta = document.createElement('div');
+    meta.className = 'message-meta';
 
-      const sender = document.createElement('span');
-      sender.className = 'message-sender';
-      sender.textContent = msg.sender + (isMe ? ' (You)' : '');
-      sender.style.color = getUsernameColor(msg.sender);
+    const sender = document.createElement('span');
+    sender.className = 'message-sender';
+    sender.textContent = msg.sender + (isMe ? ' (You)' : '');
+    sender.style.color = getUsernameColor(msg.sender);
 
-      const time = document.createElement('span');
-      time.className = 'message-time';
-      time.textContent = formatTime(msg.timestamp);
+    const time = document.createElement('span');
+    time.className = 'message-time';
+    time.textContent = formatTime(msg.timestamp);
 
-      meta.appendChild(sender);
-      meta.appendChild(time);
-      messageEntry.appendChild(meta);
-    }
+    meta.appendChild(sender);
+    meta.appendChild(time);
+    messageEntry.appendChild(meta);
 
     // 3. Content container
     const contentBox = document.createElement('div');
@@ -540,6 +560,34 @@
 
     actionsBar.appendChild(replyBtn);
     actionsBar.appendChild(copyBtn);
+
+    // Delete Button (only on msgs sent by yourself, to the right of copy & reply)
+    if (isMe) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'btn-msg-action btn-msg-delete';
+      deleteBtn.title = 'Delete message';
+      deleteBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      `;
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Straight delete - no warning dialog as requested
+        if (state.socket && msg.id) {
+          state.socket.emit('delete_message', {
+            messageId: msg.id,
+            room: state.room
+          });
+        }
+      });
+      actionsBar.appendChild(deleteBtn);
+    }
+
     messageEntry.appendChild(actionsBar);
 
     chatMessages.appendChild(messageEntry);

@@ -58,6 +58,8 @@ app.get('/ping', (req, res) => {
 const rooms = new Map();
 // Socket ID to current room lookup
 const socketRoomMap = new Map();
+// Message ownership cache: messageId -> { sender, socketId, room }
+const recentMessages = new Map();
 
 function getRoomUsers(roomName) {
   if (!rooms.has(roomName)) return [];
@@ -164,6 +166,46 @@ io.on('connection', (socket) => {
     };
 
     io.to(cleanRoom).emit('new_message', messageData);
+
+    // Track message ownership for authorization
+    recentMessages.set(messageData.id, {
+      sender: senderName,
+      socketId: socket.id,
+      room: cleanRoom
+    });
+    if (recentMessages.size > 2000) {
+      const oldestKey = recentMessages.keys().next().value;
+      recentMessages.delete(oldestKey);
+    }
+  });
+
+  // Handle message deletion
+  socket.on('delete_message', ({ messageId, room }) => {
+    const rawRoom = socketRoomMap.get(socket.id) || room || 'general';
+    const cleanRoom = String(rawRoom).trim().toLowerCase().slice(0, 30);
+    if (!cleanRoom || !messageId) return;
+
+    const cleanMessageId = String(messageId).trim();
+    if (!cleanMessageId) return;
+
+    // Check message ownership if tracked
+    const msgInfo = recentMessages.get(cleanMessageId);
+    if (msgInfo) {
+      const userObj = rooms.get(cleanRoom)?.get(socket.id);
+      const requesterName = userObj?.username;
+      // Allow deletion only if sender socket matches or username matches
+      if (msgInfo.socketId !== socket.id && msgInfo.sender !== requesterName) {
+        console.warn(`[Delete Denied] Unauthorized delete attempt for ${cleanMessageId} by ${requesterName || socket.id}`);
+        return;
+      }
+      recentMessages.delete(cleanMessageId);
+    }
+
+    console.log(`[Delete] Message ${cleanMessageId} deleted in #${cleanRoom}`);
+    io.to(cleanRoom).emit('message_deleted', {
+      messageId: cleanMessageId,
+      room: cleanRoom
+    });
   });
 
   // Handle typing indicator

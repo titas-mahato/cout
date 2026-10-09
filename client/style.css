@@ -604,6 +604,11 @@ html, body {
   color: var(--success);
 }
 
+.btn-msg-action.btn-msg-delete:hover {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
 /* Discord-Style Reply Context & Curved Spine */
 .reply-context {
   display: flex;
@@ -724,6 +729,10 @@ html, body {
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  width: fit-content;
+  max-width: 100%;
+  min-width: min(240px, 100%);
+  box-sizing: border-box;
 }
 
 .code-container-header {

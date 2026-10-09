@@ -49,3 +49,4 @@ things done so far:
 - added in-place code snippet language switching to prevent block stacking and preserve original message
 - updated server wake estimate to ~15s and styled code button with a distinct lighter blue shade
 - added Discord-style reply system with curved connector spine, message copy button, top-right floating action bar, edge-to-edge hover highlight, and consecutive message grouping
+- added real-time message deletion for own messages (straight instant delete) and reverted code snippet boxes to dynamic width matching code content
