@@ -113,7 +113,7 @@ io.on('connection', (socket) => {
   });
 
   // Handle chat messages
-  socket.on('send_message', ({ room, text, username }) => {
+  socket.on('send_message', ({ room, text, username, replyTo }) => {
     const rawRoom = socketRoomMap.get(socket.id) || room || 'general';
     const cleanRoom = String(rawRoom).trim().toLowerCase().slice(0, 30);
     if (!cleanRoom) return;
@@ -145,12 +145,22 @@ io.on('connection', (socket) => {
       });
     }
 
+    let cleanReplyTo = null;
+    if (replyTo && typeof replyTo === 'object') {
+      cleanReplyTo = {
+        id: String(replyTo.id || ''),
+        sender: String(replyTo.sender || '').trim().slice(0, 30),
+        text: String(replyTo.text || '').trim().slice(0, 300)
+      };
+    }
+
     const messageData = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       sender: senderName,
       text: text.slice(0, 8000), // Protect against overly long payloads
       room: cleanRoom,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      replyTo: cleanReplyTo
     };
 
     io.to(cleanRoom).emit('new_message', messageData);

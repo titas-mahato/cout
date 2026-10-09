@@ -7,7 +7,10 @@
     activeUsers: [],
     typingTimer: null,
     isTyping: false,
-    soundEnabled: localStorage.getItem('cout_sound_enabled') !== 'false'
+    soundEnabled: localStorage.getItem('cout_sound_enabled') !== 'false',
+    replyingTo: null,
+    lastMessageSender: null,
+    lastMessageTime: 0
   };
 
   // DOM Elements
@@ -40,6 +43,11 @@
   const chatMessages = document.getElementById('chat-messages');
   const typingIndicator = document.getElementById('typing-indicator');
   const typingText = typingIndicator.querySelector('.typing-text');
+
+  const replyBanner = document.getElementById('reply-banner');
+  const replyTargetUser = document.getElementById('reply-target-user');
+  const replyTargetSnippet = document.getElementById('reply-target-snippet');
+  const cancelReplyBtn = document.getElementById('cancel-reply-btn');
 
   const messageForm = document.getElementById('message-form');
   const messageInput = document.getElementById('message-input');
@@ -141,6 +149,9 @@
       }
       state.room = data.room;
       state.username = data.username;
+      state.lastMessageSender = null;
+      state.lastMessageTime = 0;
+      cancelReply();
       
       // Save active session so accidental page reload doesn't kick user out
       try {
@@ -330,6 +341,45 @@
     return span;
   }
 
+  // Truncate message for reply preview (10-12 words max followed by ...)
+  function formatReplySnippet(text) {
+    if (!text) return '';
+    // Strip code fences or collapse whitespace for a clean one-line preview
+    const clean = text.replace(/```[a-zA-Z0-9_+#.-]*\n?/gi, '').replace(/\n+/g, ' ').trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length <= 12) {
+      return clean;
+    }
+    return words.slice(0, 12).join(' ') + '...';
+  }
+
+  // Set active reply target
+  function setReplyTarget(msg) {
+    state.replyingTo = {
+      id: msg.id,
+      sender: msg.sender,
+      text: msg.text
+    };
+    if (replyTargetUser) {
+      replyTargetUser.textContent = '@' + msg.sender;
+    }
+    if (replyTargetSnippet) {
+      replyTargetSnippet.textContent = '"' + formatReplySnippet(msg.text) + '"';
+    }
+    if (replyBanner) {
+      replyBanner.classList.remove('hidden');
+    }
+    messageInput.focus();
+  }
+
+  // Cancel active reply target
+  function cancelReply() {
+    state.replyingTo = null;
+    if (replyBanner) {
+      replyBanner.classList.add('hidden');
+    }
+  }
+
   // Render a new chat message
   function renderMessage(msg) {
     const isMe = msg.sender === state.username;
@@ -341,25 +391,82 @@
 
     const messageEntry = document.createElement('div');
     messageEntry.className = 'message-entry';
+    if (msg.id) {
+      messageEntry.setAttribute('data-msg-id', msg.id);
+    }
 
-    // Meta row (Sender + Timestamp)
-    const meta = document.createElement('div');
-    meta.className = 'message-meta';
+    // Consecutive Messages Grouping (Discord-style)
+    const msgTime = msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now();
+    const isConsecutive = (
+      state.lastMessageSender === msg.sender &&
+      !msg.replyTo &&
+      (msgTime - state.lastMessageTime < 5 * 60 * 1000)
+    );
+    state.lastMessageSender = msg.sender;
+    state.lastMessageTime = msgTime;
 
-    const sender = document.createElement('span');
-    sender.className = 'message-sender';
-    sender.textContent = msg.sender + (isMe ? ' (You)' : '');
-    sender.style.color = getUsernameColor(msg.sender);
+    if (isConsecutive) {
+      messageEntry.classList.add('consecutive');
+    }
 
-    const time = document.createElement('span');
-    time.className = 'message-time';
-    time.textContent = formatTime(msg.timestamp);
+    // 1. Discord-Style Reply Context & Curved Spine
+    if (msg.replyTo) {
+      const replyContext = document.createElement('div');
+      replyContext.className = 'reply-context';
+      replyContext.title = `Jump to message from ${msg.replyTo.sender}`;
 
-    meta.appendChild(sender);
-    meta.appendChild(time);
-    messageEntry.appendChild(meta);
+      const spine = document.createElement('span');
+      spine.className = 'reply-spine';
+      spine.setAttribute('aria-hidden', 'true');
 
-    // Content container
+      const replyUser = document.createElement('span');
+      replyUser.className = 'reply-user';
+      replyUser.textContent = '@' + msg.replyTo.sender;
+
+      const replyPreview = document.createElement('span');
+      replyPreview.className = 'reply-content-preview';
+      replyPreview.textContent = formatReplySnippet(msg.replyTo.text);
+
+      replyContext.appendChild(spine);
+      replyContext.appendChild(replyUser);
+      replyContext.appendChild(replyPreview);
+
+      // Smooth scroll & flash highlight on replied-to original message
+      if (msg.replyTo.id) {
+        replyContext.addEventListener('click', () => {
+          const targetEl = document.querySelector(`[data-msg-id="${msg.replyTo.id}"]`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetEl.classList.remove('reply-target-flash');
+            void targetEl.offsetWidth; // Reflow for replay
+            targetEl.classList.add('reply-target-flash');
+          }
+        });
+      }
+
+      messageEntry.appendChild(replyContext);
+    }
+
+    // 2. Meta row (Sender + Timestamp) - rendered unless grouped consecutively
+    if (!isConsecutive) {
+      const meta = document.createElement('div');
+      meta.className = 'message-meta';
+
+      const sender = document.createElement('span');
+      sender.className = 'message-sender';
+      sender.textContent = msg.sender + (isMe ? ' (You)' : '');
+      sender.style.color = getUsernameColor(msg.sender);
+
+      const time = document.createElement('span');
+      time.className = 'message-time';
+      time.textContent = formatTime(msg.timestamp);
+
+      meta.appendChild(sender);
+      meta.appendChild(time);
+      messageEntry.appendChild(meta);
+    }
+
+    // 3. Content container
     const contentBox = document.createElement('div');
     contentBox.className = 'message-content';
 
@@ -373,6 +480,68 @@
     });
 
     messageEntry.appendChild(contentBox);
+
+    // 4. Floating Action Bar (Reply + Copy buttons)
+    const actionsBar = document.createElement('div');
+    actionsBar.className = 'message-actions';
+
+    // Reply Button
+    const replyBtn = document.createElement('button');
+    replyBtn.type = 'button';
+    replyBtn.className = 'btn-msg-action';
+    replyBtn.title = 'Reply';
+    replyBtn.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 17 4 12 9 7"></polyline>
+        <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+      </svg>
+    `;
+    replyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setReplyTarget(msg);
+    });
+
+    // Copy Button
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn-msg-action';
+    copyBtn.title = 'Copy text';
+    copyBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    `;
+    copyBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(msg.text);
+        copyBtn.classList.add('copied');
+        copyBtn.title = 'Copied!';
+        copyBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        `;
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyBtn.title = 'Copy text';
+          copyBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          `;
+        }, 1500);
+      } catch (err) {
+        console.error('Clipboard copy failed:', err);
+      }
+    });
+
+    actionsBar.appendChild(replyBtn);
+    actionsBar.appendChild(copyBtn);
+    messageEntry.appendChild(actionsBar);
+
     chatMessages.appendChild(messageEntry);
 
     // Scroll to bottom
@@ -381,6 +550,8 @@
 
   // Render System Notification
   function renderSystemMessage(data) {
+    state.lastMessageSender = null;
+    state.lastMessageTime = 0;
     const div = document.createElement('div');
     div.className = 'system-entry';
     div.textContent = `${data.text} — ${formatTime(data.timestamp)}`;
@@ -466,11 +637,23 @@
         return;
       }
 
-      state.socket.emit('send_message', {
+      const payload = {
         room: state.room,
         username: state.username,
         text: text
-      });
+      };
+
+      if (state.replyingTo) {
+        payload.replyTo = {
+          id: state.replyingTo.id,
+          sender: state.replyingTo.sender,
+          text: state.replyingTo.text
+        };
+      }
+
+      state.socket.emit('send_message', payload);
+
+      cancelReply();
 
       messageInput.value = '';
       autoResizeTextarea();
@@ -478,6 +661,13 @@
       // Clear typing state
       state.socket.emit('typing', { room: state.room, isTyping: false });
       state.isTyping = false;
+    }
+
+    if (cancelReplyBtn) {
+      cancelReplyBtn.addEventListener('click', () => {
+        cancelReply();
+        messageInput.focus();
+      });
     }
 
     if (sendBtn) {
@@ -600,12 +790,17 @@
         }
       });
 
-      // Close popover on Escape
+      // Close popover or cancel reply on Escape
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !codeLangPicker.classList.contains('hidden')) {
-          codeLangPicker.classList.add('hidden');
-          codeSnippetBtn.classList.remove('active');
-          messageInput.focus();
+        if (e.key === 'Escape') {
+          if (state.replyingTo) {
+            cancelReply();
+          }
+          if (!codeLangPicker.classList.contains('hidden')) {
+            codeLangPicker.classList.add('hidden');
+            codeSnippetBtn.classList.remove('active');
+            messageInput.focus();
+          }
         }
       });
 
@@ -659,6 +854,9 @@
           state.socket.emit('leave_room');
         }
         state.username = '';
+        state.lastMessageSender = null;
+        state.lastMessageTime = 0;
+        cancelReply();
         chatScreen.classList.add('hidden');
         joinScreen.classList.remove('hidden');
         usersSidebar.classList.add('hidden');
