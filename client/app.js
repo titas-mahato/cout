@@ -430,7 +430,7 @@
 
       if (!state.socket || !state.socket.connected) {
         if (joinBtn) {
-          joinBtn.textContent = 'Waking up server... (takes ~30s)';
+          joinBtn.textContent = 'Waking up server... (takes ~15s)';
           joinBtn.disabled = true;
         }
 
@@ -446,7 +446,7 @@
             joinBtn.textContent = 'Enter Room';
             joinBtn.disabled = false;
           }
-          alert('Backend server is waking up. Please wait 10-20 seconds and click Enter Room again!');
+          alert('Backend server is waking up. Please wait ~15 seconds and click Enter Room again!');
         });
         return;
       }

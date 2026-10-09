@@ -47,4 +47,5 @@ things done so far:
 - added 4x3 code snippet selector popup with textless white squircle blob logos for 12 languages and intelligent cursor positioning
 - repositioned code snippet trigger button to the left of the chat box
 - added in-place code snippet language switching to prevent block stacking and preserve original message
+- updated server wake estimate to ~15s and styled code button with a distinct lighter blue shade
 
