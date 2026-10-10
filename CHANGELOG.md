@@ -50,3 +50,4 @@ things done so far:
 - updated server wake estimate to ~15s and styled code button with a distinct lighter blue shade
 - added Discord-style reply system with curved connector spine, message copy button, top-right floating action bar, edge-to-edge hover highlight, and consecutive message grouping
 - added real-time message deletion for own messages (straight instant delete) and reverted code snippet boxes to dynamic width matching code content
+- fixed consecutive message grouping healing on message deletion so sender headers properly re-appear across deletions, replies, and first messages

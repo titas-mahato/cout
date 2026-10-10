@@ -182,17 +182,8 @@
         if (state.replyingTo && state.replyingTo.id === messageId) {
           cancelReply();
         }
-        const nextEl = el.nextElementSibling;
         el.remove();
-        // Heal consecutive grouping if head message of a group was deleted
-        if (nextEl && nextEl.classList.contains('consecutive')) {
-          const prevEl = nextEl.previousElementSibling;
-          const prevSender = prevEl?.getAttribute('data-sender');
-          const nextSender = nextEl.getAttribute('data-sender');
-          if (!prevEl || prevSender !== nextSender || prevEl.classList.contains('system-entry')) {
-            nextEl.classList.remove('consecutive');
-          }
-        }
+        updateAllMessageGrouping();
       }
     });
 
@@ -401,6 +392,48 @@
     }
   }
 
+  // Recalculate consecutive grouping for all messages in chat based on current DOM state
+  function updateAllMessageGrouping() {
+    const children = Array.from(chatMessages.children);
+    let lastMsgSender = null;
+    let lastMsgTime = 0;
+
+    children.forEach((child) => {
+      // Welcome banner or non-message element
+      if (!child.classList.contains('message-entry')) {
+        // System message breaks grouping
+        if (child.classList.contains('system-entry')) {
+          lastMsgSender = null;
+          lastMsgTime = 0;
+        }
+        return;
+      }
+
+      const sender = child.getAttribute('data-sender');
+      const time = parseInt(child.getAttribute('data-timestamp') || '0', 10);
+      const isReply = child.querySelector('.reply-context') !== null;
+
+      const isConsecutive = (
+        Boolean(lastMsgSender) &&
+        lastMsgSender === sender &&
+        !isReply &&
+        (time - lastMsgTime < 5 * 60 * 1000)
+      );
+
+      if (isConsecutive) {
+        child.classList.add('consecutive');
+      } else {
+        child.classList.remove('consecutive');
+      }
+
+      lastMsgSender = sender;
+      lastMsgTime = time;
+    });
+
+    state.lastMessageSender = lastMsgSender;
+    state.lastMessageTime = lastMsgTime;
+  }
+
   // Render a new chat message
   function renderMessage(msg) {
     const isMe = msg.sender === state.username;
@@ -416,20 +449,8 @@
       messageEntry.setAttribute('data-msg-id', msg.id);
     }
     messageEntry.setAttribute('data-sender', msg.sender);
-
-    // Consecutive Messages Grouping (Discord-style)
     const msgTime = msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now();
-    const isConsecutive = (
-      state.lastMessageSender === msg.sender &&
-      !msg.replyTo &&
-      (msgTime - state.lastMessageTime < 5 * 60 * 1000)
-    );
-    state.lastMessageSender = msg.sender;
-    state.lastMessageTime = msgTime;
-
-    if (isConsecutive) {
-      messageEntry.classList.add('consecutive');
-    }
+    messageEntry.setAttribute('data-timestamp', String(msgTime));
 
     // 1. Discord-Style Reply Context & Curved Spine
     if (msg.replyTo) {
@@ -591,6 +612,7 @@
     messageEntry.appendChild(actionsBar);
 
     chatMessages.appendChild(messageEntry);
+    updateAllMessageGrouping();
 
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -598,12 +620,11 @@
 
   // Render System Notification
   function renderSystemMessage(data) {
-    state.lastMessageSender = null;
-    state.lastMessageTime = 0;
     const div = document.createElement('div');
     div.className = 'system-entry';
     div.textContent = `${data.text} — ${formatTime(data.timestamp)}`;
     chatMessages.appendChild(div);
+    updateAllMessageGrouping();
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
